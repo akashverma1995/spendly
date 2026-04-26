@@ -1,8 +1,11 @@
-from flask import Flask, render_template
+import sqlite3
 
-from database.db import get_db, init_db, seed_db
+from flask import Flask, redirect, render_template, request, url_for
+
+from database.db import create_user, get_db, init_db, seed_db
 
 app = Flask(__name__)
+app.secret_key = "dev-secret-change-me"
 
 
 # ------------------------------------------------------------------ #
@@ -14,8 +17,29 @@ def landing():
     return render_template("landing.html")
 
 
-@app.route("/register")
+@app.route("/register", methods=["GET", "POST"])
 def register():
+    if request.method == "POST":
+        name = request.form["name"].strip()
+        email = request.form["email"].strip()
+        password = request.form["password"]
+
+        if len(password) < 8:
+            return render_template(
+                "register.html",
+                error="Password must be at least 8 characters.",
+            )
+
+        try:
+            create_user(name, email, password)
+        except sqlite3.IntegrityError:
+            return render_template(
+                "register.html",
+                error="An account with that email already exists.",
+            )
+
+        return redirect(url_for("login"))
+
     return render_template("register.html")
 
 
